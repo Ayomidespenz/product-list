@@ -1,32 +1,36 @@
-//Declaring variables
+
+
+// Declaring variables
 let products = [];
 const cart = [];
 
-// // Fetch products from JSON file
-fetch("data.json")
-  .then((response) => response.json())
-  .then((data) => {
+// Function to fetch products using async/await
+async function fetchProducts() {
+  try {
+    const response = await fetch("data.json");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
     products = data;
     renderProducts();
-  })
-  .catch((error) => console.error("Error loading products:", error));
-
-
+  } catch (error) {
+    console.error("Error loading products:", error);
+  }
+}
 
 // Function to render product cards on the page
 function renderProducts() {
   const productList = document.getElementById("product-list");
   productList.innerHTML = "";
 
-  //HTML for product card
   products.forEach((product, index) => {
     const productCard = document.createElement("div");
     productCard.className = "col-md-4 mb-4";
     productCard.innerHTML = `
       <div class="card">
         <div class="card-img-container">
-          <img src="${product.image.mobile}" class="card-img-top" alt="${product.name
-      }">
+          <img src="${product.image.mobile}" class="card-img-top" alt="${product.name}">
           <div class="add-to-cart-container">
             <button class="btn btn-prim add-to-cart-btn" onclick="addToCart(${index})">
               <i class="bi bi-cart-plus"></i> Add to Cart
@@ -56,7 +60,6 @@ function addToCart(index) {
   const addToCartBtn = card.querySelector(".add-to-cart-btn");
   const quantityInputGroup = card.querySelector(".quantity-input-group");
 
-  // Check if the product is already in the cart
   const existingItem = cart.find((item) => item.name === product.name);
 
   if (existingItem) {
@@ -65,7 +68,6 @@ function addToCart(index) {
     cart.push({ ...product, quantity: 1 });
   }
 
-  // Update UI
   addToCartBtn.style.display = "none";
   quantityInputGroup.style.display = "flex";
 
@@ -133,22 +135,18 @@ function renderCart() {
   let total = 0;
   let uniqueItemCount = cart.length;
 
-  // Display appropriate elements based on cart contents
   if (cart.length === 0) {
-    // Cart is empty
     emptyCart.style.display = "block";
     cartTotal.style.display = "none";
     confirmOrderBtn.style.display = "none";
     carbonNeutral.style.display = "none";
   } else {
-    // Cart has items
     emptyCart.style.display = "none";
     cartTotal.style.display = "block";
     confirmOrderBtn.style.display = "block";
     carbonNeutral.style.display = "block";
 
-    // Render each cart item/Cart item HTML structure
-    cart.forEach((item, index) => {
+    cart.forEach((item) => {
       const cartItem = document.createElement("div");
       cartItem.className = "cart-item";
       cartItem.innerHTML = `
@@ -156,26 +154,21 @@ function renderCart() {
           <div>
             <h6 class="mb-0">${item.name}</h6>
             <small>
-              <span class="cart-item-quantity">${item.quantity
-        }x</span> @ $${item.price.toFixed(2)}
+              <span class="cart-item-quantity">${item.quantity}x</span> @ $${item.price.toFixed(2)}
             </small>
           </div>
           <div class="d-flex align-items-center">
-            <span class="cart-item-price me-2">$${(
-          item.price * item.quantity
-        ).toFixed(2)}</span>
-            <button class="btn btn-sm btn-outline" onclick="removeFromCart(${index})">
+            <span class="cart-item-price me-2">$${(item.price * item.quantity).toFixed(2)}</span>
+            <button class="btn btn-sm btn-outline" onclick="removeFromCart('${item.name}')">
               <i class="bi bi-x"></i>
             </button>
           </div>
         </div>
       `;
       cartItems.appendChild(cartItem);
-
       total += item.price * item.quantity;
     });
 
-    // Update cart total
     cartTotal.innerHTML = `
       <div style="display: flex; justify-content: space-between; width: 100%;">
         <span>Order Total:</span>
@@ -184,20 +177,22 @@ function renderCart() {
     `;
   }
 
-  // Update cart count
   cartCount.textContent = uniqueItemCount;
 }
 
 // Function to remove an item from the cart
-function removeFromCart(index) {
-  const removedItem = cart.splice(index, 1)[0];
-  const productIndex = products.findIndex(
-    (product) => product.name === removedItem.name
-  );
-  if (productIndex !== -1) {
-    resetProductCard(productIndex);
+function removeFromCart(productName) {
+  const indexToRemove = cart.findIndex((item) => item.name === productName);
+  if (indexToRemove !== -1) {
+    const removedItem = cart.splice(indexToRemove, 1)[0];
+    const productIndex = products.findIndex(
+      (product) => product.name === removedItem.name
+    );
+    if (productIndex !== -1) {
+      resetProductCard(productIndex);
+    }
+    renderCart();
   }
-  renderCart();
 }
 
 // Get both modal elements
@@ -252,13 +247,11 @@ function showOrderConfirmationModal() {
   modalOrderDetails.innerHTML = "";
   let total = 0;
 
-  // Render each item in the order confirmation/order item html
   cart.forEach((item) => {
     const itemDetail = document.createElement("div");
     itemDetail.className = "order-item";
     itemDetail.innerHTML = `
-      <img src="${item.image.thumbnail}" alt="${item.name
-      }" class="item-thumbnail">
+      <img src="${item.image.thumbnail}" alt="${item.name}" class="item-thumbnail">
       <div class="item-details">
         <h3>${item.name}</h3>
         <p>${item.quantity}x @ $${item.price.toFixed(2)}</p>
@@ -269,13 +262,11 @@ function showOrderConfirmationModal() {
     total += item.price * item.quantity;
   });
 
-  // Update order total in the modal
   modalOrderTotal.innerHTML = `
     <span>Order Total</span>
     <span>$${total.toFixed(2)}</span>
   `;
 
-  // Show the modal
   orderConfirmationModal.style.display = "block";
   orderConfirmationModal.classList.add("show");
 }
@@ -286,7 +277,6 @@ function startNewOrder() {
   renderCart();
   closeModal();
 
-  // Reset all product cards to their initial state
   document.querySelectorAll(".card").forEach((card, index) => {
     resetProductCard(index);
   });
@@ -303,5 +293,8 @@ document
   .getElementById("startNewOrderBtn")
   .addEventListener("click", startNewOrder);
 
-// Initial render
+// Initial fetch and render
+fetchProducts();
+
+// Initial render of the cart (in case there's initial data or for UI consistency)
 renderCart();
